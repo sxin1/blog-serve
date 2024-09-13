@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录页面</title>
+</head>
+
+<body>
+  <script src="node_modules/axios/dist/axios.min.js"></script>
+  <!-- <script src="https://unpkg.com/browse/node-forge@1.0.0/dist/forge.min.js"></script> -->
+  <script src="https://cdn.jsdelivr.net/npm/node-forge@1.0.0/dist/forge.min.js"></script>
+
+  <script>
+    
+
+    const pubKeyName = "UA_KEY"
+    const requestHost = 'http://127.0.0.1:3000'
+    const storage = {
+      set(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+      },
+      get(key) {
+        return localStorage.getItem(key);
+      },
+      remove(key) {
+        localStorage.removeItem(key);
+      }
+    }
+
+    async function getPublicKey() {
+      let key = storage.get(pubKeyName)
+      if (!key || key === 'undefined') {
+        try {
+          let result = await axios.post(`${requestHost}/getPublicKey`)
+          let key = result.data.data.pubKey
+          key = key.replace(/\. +/g, '')
+          key = key.replace(/[\r\n]/g, '')
+          storage.set(pubKeyName, key)
+          return key
+        } catch (err) {
+          console.error(err)
+        }
+      }
+      return key
+    }
+ 
+
+    async function getToken() {
+      let result = axios.post('http://127.0.0.1:3000/register', {
+        user_name: 'nihao1',
+        pwd: encrypt(key ,'123!!!')
+      })
+
+    }
+
+    getPublicKey().then(async key => {
+      let result = await axios.post('http://127.0.0.1:3000/login', {
+        user_name: 'nihao1',
+        pwd: encrypt(key ,'123!!!')
+      })
+      let token = await result.data.data.token
+      axios.get('http://127.0.0.1:3000/user', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        }
+      })
+    })
+
+
+
+
+
+    function encrypt(publicKey, plain) {
+      const publicObj = forge.pki.publicKeyFromPem(publicKey)
+      let bytes = publicObj.encrypt(plain, 'RSA-OAEP')
+      return forge.util.encode64(bytes)
+    }
+
+  </script>
+
+
+</body>
+
+</html>
